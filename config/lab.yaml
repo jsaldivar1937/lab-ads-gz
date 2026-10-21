@@ -1,0 +1,145 @@
+# ============================================================
+#  Laboratorio Virtual ADS — Gazebo Harmonic + ROS 2 Jazzy
+#  Marco del mundo = ENU (x este, y norte, z arriba) = marco "map" de ROS.
+#  Posiciones de sensores en el marco del vehículo (x adelante, y izquierda).
+# ============================================================
+
+simulador:
+  mundo: ciudad
+  # Coordenadas geográficas del origen (UAZ, Zacatecas) para el GNSS
+  latitud: 22.7709
+  longitud: -102.5833
+  elevacion: 2440
+  paso_control: 0.05          # s, ciclo del núcleo (20 Hz)
+  clima: ClearNoon            # en Gazebo solo cambia la iluminación
+  # true: publica TF map → auto/base_link con la pose real (útil para RViz).
+  # false en las prácticas de localización (cada quien publica su estimación).
+  tf_ground_truth: true
+
+ciudad:
+  separacion_calles: 60       # m entre ejes de calles (cuadrícula 3×3)
+  ancho_calle: 9.0            # 2 carriles de 3.5 m + acotamientos
+  semilla: 7
+  estacionamiento: true       # una manzana con cajones y autos estacionados
+
+trafico:
+  vehiculos: 5                # autos que circulan solos por la ciudad
+  velocidad: 7.0              # m/s
+
+equipos:
+  - nombre: auto
+    color: "245,165,36"
+
+vehiculo:                     # modelo dinámico (bicicleta) del vehículo
+  distancia_ejes: 2.7
+  max_giro: 35                # grados en las ruedas
+  acel_max: 3.5               # m/s²
+  frenado_max: 8.0            # m/s²
+  vel_max: 22.0               # m/s
+  radio_rueda: 0.33           # m
+
+# Sensores. "tipo" usa nombres genéricos; el generador los convierte a Gazebo.
+# "bajo_demanda": solo se dibuja cuando el profesor la enciende (ahorra CPU/GPU).
+sensores:
+  - nombre: camara_frontal
+    tipo: sensor.camera.rgb
+    activo: true
+    pos: [1.6, 0.0, 1.5]
+    rot: [0, 0, 0]
+    hz: 10
+    attrs: {image_size_x: 640, image_size_y: 360, fov: 90}
+
+  - nombre: camara_profundidad
+    tipo: sensor.camera.depth
+    activo: true
+    bajo_demanda: true
+    pos: [1.6, 0.0, 1.5]
+    rot: [0, 0, 0]
+    hz: 10
+    attrs: {image_size_x: 480, image_size_y: 270, fov: 90}
+
+  - nombre: camara_segmentacion
+    tipo: sensor.camera.semantic_segmentation
+    activo: true
+    bajo_demanda: true
+    pos: [1.6, 0.0, 1.5]
+    rot: [0, 0, 0]
+    hz: 10
+    attrs: {image_size_x: 480, image_size_y: 270, fov: 90}
+
+  - nombre: camara_flujo           # flujo óptico calculado a partir de la cámara frontal
+    tipo: sensor.camera.optical_flow
+    activo: true
+    bajo_demanda: true
+    pos: [1.6, 0.0, 1.5]
+    rot: [0, 0, 0]
+    hz: 10
+    attrs: {image_size_x: 320, image_size_y: 180, fov: 90}
+
+  - nombre: lidar
+    tipo: sensor.lidar.ray_cast
+    activo: true
+    pos: [0.0, 0.0, 2.1]
+    rot: [0, 0, 0]
+    hz: 10
+    attrs: {channels: 16, horizontal_samples: 720, range: 60, upper_fov: 10, lower_fov: -20, noise_stddev: 0.01}
+
+  - nombre: radar_frontal           # emulado a partir de la geometría y los autos
+    tipo: sensor.other.radar
+    activo: true
+    pos: [2.3, 0.0, 0.6]
+    rot: [0, 0, 0]
+    hz: 10
+    attrs: {horizontal_fov: 30, range: 100, rayos: 41, noise_stddev: 0.1}
+
+  - nombre: gnss
+    tipo: sensor.other.gnss
+    activo: true
+    pos: [0.0, 0.0, 1.8]
+    rot: [0, 0, 0]
+    hz: 10
+    attrs: {noise_horizontal: 1.5, noise_vertical: 3.0}
+
+  - nombre: imu
+    tipo: sensor.other.imu
+    activo: true
+    pos: [0.0, 0.0, 0.5]
+    rot: [0, 0, 0]
+    hz: 20
+    attrs: {noise_accel: 0.05, noise_gyro: 0.005}
+
+  # Ultrasonido de estacionamiento (emulado): 4 delanteros y 4 traseros
+  - nombre: ultrasonido
+    tipo: sensor.other.obstacle
+    activo: true
+    hz: 10
+    attrs: {distance: 5.0}
+    arreglo:
+      del_izq_ext:  {pos: [2.25, 0.70, 0.5], rot: [0, 0, 45]}
+      del_izq:      {pos: [2.40, 0.30, 0.5], rot: [0, 0, 10]}
+      del_der:      {pos: [2.40, -0.30, 0.5], rot: [0, 0, -10]}
+      del_der_ext:  {pos: [2.25, -0.70, 0.5], rot: [0, 0, -45]}
+      tras_izq_ext: {pos: [-2.25, 0.70, 0.5], rot: [0, 0, 135]}
+      tras_izq:     {pos: [-2.40, 0.30, 0.5], rot: [0, 0, 170]}
+      tras_der:     {pos: [-2.40, -0.30, 0.5], rot: [0, 0, -170]}
+      tras_der_ext: {pos: [-2.25, -0.70, 0.5], rot: [0, 0, -135]}
+
+  - nombre: colision
+    tipo: sensor.other.collision
+    activo: true
+
+  - nombre: invasion_carril
+    tipo: sensor.other.lane_invasion
+    activo: true
+
+encoders:
+  ticks_por_vuelta: 1024
+  ruido_velocidad: 0.02
+
+ecu:
+  dbc: /lab/config/lab_ads.dbc
+
+# Terminal de prácticas: los alumnos ven estos tópicos en un dominio ROS aparte
+# (solo lectura: no pueden mandar comandos al vehículo).
+practicas:
+  dominio: 8

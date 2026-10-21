@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel del profesor · Laboratorio ADS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body data-vista="profesor" class="vista-profesor">
+
+<!-- ============ acceso del profesor ============ -->
+<div class="entrada" id="entrada" hidden>
+  <form class="tarjeta" id="form-entrada">
+    <span class="logo">ADS</span>
+    <h1>Panel del profesor</h1>
+    <p class="tenue">Desde aquí das y quitas el control del vehículo, y manejas el laboratorio.</p>
+    <label>Usuario
+      <input id="in-usuario" maxlength="40" autocomplete="username" required value="profesor">
+    </label>
+    <label>Clave
+      <input id="in-clave" type="password" autocomplete="current-password" required>
+    </label>
+    <p class="error" id="error-entrada"></p>
+    <button type="submit" class="primario">Entrar</button>
+    <a class="enlace" href="./">Ir a la vista de alumnos</a>
+  </form>
+</div>
+
+<!-- ============ barra superior ============ -->
+<header class="barra">
+  <div class="marca">
+    <span class="logo">ADS</span>
+    <div>
+      <h1>Panel del profesor</h1>
+      <p id="sub-mapa">Gazebo · ROS 2</p>
+    </div>
+  </div>
+  <nav class="pestanas" id="pestanas" aria-label="Secciones">
+    <button data-tab="conduccion" class="activa">Conducción</button>
+    <button data-tab="sensores">Sensores</button>
+    <button data-tab="ecu">ECU / CAN</button>
+    <button data-tab="terminal">Terminal</button>
+  </nav>
+  <div class="estado-global">
+    <span class="pill conduce" id="pill-conduce"><i></i>Nadie conduce</span>
+    <span class="pill" id="pill-gente"><i></i>0 conectados</span>
+    <span class="pill" id="pill-sim"><i></i>simulación</span>
+    <span class="yo" id="yo"></span>
+    <label class="clima" id="lbl-clima">Clima
+      <select id="sel-clima"></select>
+    </label>
+    <button class="btn-mini" id="btn-salir" hidden>Cerrar sesión</button>
+  </div>
+</header>
+
+<div class="layout-prof">
+<div class="zona-tabs">
+<main class="tablero tablero-prof" id="tab-conduccion">
+  <section class="panel p-camara">
+    <div class="cab">
+      <h2>Cámara</h2>
+      <select id="sel-camara" aria-label="Cámara"></select>
+    </div>
+    <div class="video"><img id="img-camara" alt="Cámara del vehículo"></div>
+  </section>
+
+  <section class="panel p-mapa">
+    <div class="cab">
+      <h2>Mapa · ground truth</h2>
+      <label class="chk"><input type="checkbox" id="chk-seguir" checked> Seguir</label>
+    </div>
+    <div class="lienzo"><canvas id="mapa"></canvas></div>
+  </section>
+
+  <section class="panel p-3d">
+    <div class="cab">
+      <h2>LiDAR y radar</h2>
+      <button class="btn-mini" id="btn-vista">Vista superior</button>
+    </div>
+    <div class="lienzo" id="vista3d"></div>
+  </section>
+
+  <section class="panel p-tele">
+    <div class="cab"><h2>Telemetría</h2><span class="modo" id="modo">—</span></div>
+    <div class="tele">
+      <div class="vel"><b id="vel">0</b><span>km/h</span></div>
+      <div class="barras">
+        <div class="barra-fila"><span>Acelerador</span><div class="medidor"><i id="b-acel"></i></div></div>
+        <div class="barra-fila"><span>Freno</span><div class="medidor freno"><i id="b-freno"></i></div></div>
+        <div class="barra-fila"><span>Giro</span><div class="medidor centro"><i id="b-giro"></i></div></div>
+      </div>
+    </div>
+    <div class="graficas">
+      <div class="graf"><canvas id="g-vel"></canvas></div>
+      <div class="graf"><canvas id="g-acc"></canvas></div>
+      <div class="graf"><canvas id="g-gyr"></canvas></div>
+    </div>
+    <dl class="datos">
+      <dt>GNSS</dt><dd id="gnss">—</dd>
+      <dt>Encoders</dt><dd id="enc">—</dd>
+    </dl>
+  </section>
+
+</main>
+
+<!-- ==================== pestaña SENSORES ==================== -->
+<main class="tablero-tab t-sensores" id="tab-sensores" hidden>
+  <section class="panel s-extra">
+    <div class="cab">
+      <h2>Cámara adicional</h2>
+      <select id="sel-extra" class="solo-prof" aria-label="Cámara adicional"></select>
+      <span class="etiqueta solo-alumno" id="lbl-extra">Ninguna</span>
+    </div>
+    <div class="video"><img id="img-extra" alt="Cámara adicional"></div>
+    <p class="nota" id="nota-extra">Profundidad, segmentación y flujo óptico se encienden una a la vez para no saturar la GPU.</p>
+  </section>
+
+  <section class="panel s-us">
+    <div class="cab"><h2>Ultrasonido</h2><span class="etiqueta">alcance 5 m</span></div>
+    <div class="lienzo"><canvas id="us-canvas"></canvas></div>
+  </section>
+
+  <section class="panel s-estado">
+    <div class="cab"><h2>Estado de los sensores</h2></div>
+    <div class="tabla-scroll">
+      <table class="tabla" id="tabla-sensores">
+        <thead><tr><th>Sensor</th><th>Config.</th><th>Real</th><th>Estado</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel s-imu">
+    <div class="cab"><h2>IMU</h2><span class="etiqueta">/auto/imu/data</span></div>
+    <div class="cuadricula-valores" id="val-imu"></div>
+  </section>
+
+  <section class="panel s-gnss">
+    <div class="cab"><h2>GNSS</h2><span class="estado-chip" id="chip-gnss">—</span></div>
+    <div class="cuadricula-valores" id="val-gnss"></div>
+  </section>
+
+  <section class="panel s-radar">
+    <div class="cab"><h2>Radar y LiDAR</h2></div>
+    <div class="cuadricula-valores" id="val-radar"></div>
+  </section>
+
+  <section class="panel s-enc">
+    <div class="cab"><h2>Encoders de rueda</h2><span class="etiqueta">1024 ticks/vuelta</span></div>
+    <div class="cuadricula-valores" id="val-enc"></div>
+  </section>
+</main>
+
+<!-- ==================== pestaña ECU / CAN ==================== -->
+<main class="tablero-tab t-ecu" id="tab-ecu" hidden>
+  <section class="panel e-tablero">
+    <div class="cab">
+      <h2>Tablero (ECU)</h2>
+      <span class="mil" id="mil" title="Testigo de falla (MIL)">⚠ MIL</span>
+    </div>
+    <div class="medidores">
+      <canvas id="m-rpm"></canvas>
+      <canvas id="m-vel"></canvas>
+    </div>
+    <div class="cuadricula-valores" id="val-ecu"></div>
+  </section>
+
+  <section class="panel e-dtc">
+    <div class="cab">
+      <h2>Códigos de falla (DTC)</h2>
+      <button class="btn-mini solo-prof" id="btn-borrar-dtc">Borrar códigos (modo 04)</button>
+    </div>
+    <ul class="dtc" id="lista-dtc"><li class="vacio">Sin códigos</li></ul>
+    <div class="solo-prof">
+      <h3>Inyectar fallas</h3>
+      <ul class="fallas" id="lista-fallas"></ul>
+    </div>
+  </section>
+
+  <section class="panel e-can">
+    <div class="cab">
+      <h2>Bus CAN · mensajes</h2>
+      <a class="btn-mini" href="api/dbc" download>Descargar DBC</a>
+    </div>
+    <div class="tabla-scroll">
+      <table class="tabla mono" id="tabla-can">
+        <thead><tr><th>ID</th><th>Mensaje</th><th>DLC</th><th>Datos</th><th>Hz</th><th>Señales</th></tr></thead>
+        <tbody><tr><td colspan="6" class="vacio">Esperando tramas…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel e-log">
+    <div class="cab">
+      <h2>Tramas en vivo</h2>
+      <div class="controles-log">
+        <select id="filtro-can" aria-label="Filtrar por ID"><option value="">Todos los ID</option></select>
+        <button class="btn-mini" id="btn-pausa-can">Pausar</button>
+      </div>
+    </div>
+    <div class="tabla-scroll" id="scroll-log">
+      <table class="tabla mono" id="tabla-log">
+        <thead><tr><th>t (s)</th><th>ID</th><th>Datos</th><th>Decodificado</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- ==================== pestaña TERMINAL ==================== -->
+<main class="tablero-tab t-terminal" id="tab-terminal" hidden>
+  <section class="panel x-terminal">
+    <div class="cab">
+      <h2>Terminal · ROS 2 Jazzy</h2>
+      <a class="btn-mini" id="lnk-terminal" href="terminal/" target="_blank" rel="noopener">Abrir en otra pestaña</a>
+    </div>
+    <div class="lienzo"><iframe id="iframe-terminal" title="Terminal de prácticas"></iframe></div>
+    <p class="nota">Cada sesión tiene su propia carpeta con las prácticas. Puedes leer todos los sensores, pero no mover el vehículo desde aquí.</p>
+  </section>
+  <section class="panel x-archivos">
+    <div class="cab">
+      <h2>Mis archivos</h2>
+      <div class="controles-log">
+        <input type="file" id="in-archivo" multiple hidden>
+        <button class="btn-mini" id="btn-subir">Subir archivo…</button>
+      </div>
+    </div>
+    <div class="zona-subir" id="zona-subir">
+      <p id="ruta-alumno">Arrastra aquí tu código (.py, .sh, .yaml, .csv…) o usa <b>Subir archivo</b>.</p>
+      <ul class="archivos" id="lista-archivos"></ul>
+    </div>
+  </section>
+  <section class="panel x-ejemplos">
+    <div class="cab"><h2>Comandos y prácticas</h2><span class="etiqueta">clic para copiar</span></div>
+    <ul class="ejemplos" id="lista-ejemplos"></ul>
+  </section>
+  <section class="panel x-eco">
+    <div class="cab">
+      <h2>Datos crudos</h2>
+      <div class="controles-log">
+        <select id="sel-topico" aria-label="Tópico"><option value="">Elige un tópico…</option></select>
+        <button class="btn-mini" id="btn-topicos">Actualizar</button>
+      </div>
+    </div>
+    <div class="eco-meta" id="eco-meta"></div>
+    <img class="eco-img" id="eco-img" alt="Video del tópico" hidden>
+    <pre class="eco" id="eco-texto">Selecciona un tópico para ver sus mensajes tal como llegan.</pre>
+  </section>
+</main>
+</div>
+  <aside class="panel p-ctrl">
+    <div class="cab"><h2 id="tit-ctrl">Control del laboratorio</h2></div>
+
+    <div id="v-observador" hidden></div>
+
+    <div id="v-profesor">
+      <h3>Alumnos conectados</h3>
+      <ul class="usuarios" id="usuarios"><li class="vacio">Nadie más conectado</li></ul>
+
+      <h3>Vehículo</h3>
+      <div class="botones">
+        <button id="btn-conducir-yo">Conducir yo</button>
+        <button id="btn-auto">Autopiloto</button>
+        <button id="btn-reset">Reiniciar posición</button>
+        <button id="btn-quitar">Quitar control</button>
+      </div>
+    </div>
+
+    <div id="v-mandos" hidden>
+      <div class="aviso activo" id="aviso-control"><b>Estás conduciendo</b>
+        <span>W acelera · S frena · A/D giran · X reversa.</span></div>
+      <div class="pad" id="pad">
+        <button data-k="w" class="p-arr">▲</button>
+        <button data-k="a" class="p-izq">◀</button>
+        <button data-k="s" class="p-aba">■</button>
+        <button data-k="d" class="p-der">▶</button>
+        <button data-k="x" class="p-rev" id="btn-rev">R</button>
+      </div>
+    </div>
+
+    <h3>Eventos</h3>
+    <ol class="eventos" id="eventos"><li class="vacio">Sin eventos</li></ol>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="static/app.js"></script>
+</body>
+</html>

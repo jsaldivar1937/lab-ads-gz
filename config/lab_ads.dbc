@@ -1,0 +1,60 @@
+VERSION "LabADS 1.0"
+
+
+NS_ :
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+
+BS_:
+
+BU_: ECM ABS EPS BCM
+
+BO_ 192 ENGINE_1: 8 ECM
+ SG_ EngineRPM : 0|16@1+ (0.25,0) [0|16383.75] "rpm" Vector__XXX
+ SG_ ThrottlePos : 16|8@1+ (0.4,0) [0|100] "%" Vector__XXX
+ SG_ AccelPedal : 24|8@1+ (0.4,0) [0|100] "%" Vector__XXX
+ SG_ CoolantTemp : 32|8@1+ (1,-40) [-40|215] "degC" Vector__XXX
+ SG_ EngineLoad : 40|8@1+ (0.4,0) [0|100] "%" Vector__XXX
+ SG_ Counter : 56|4@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 196 STEERING: 8 EPS
+ SG_ SteeringAngle : 0|16@1- (0.1,0) [-3276.8|3276.7] "deg" Vector__XXX
+ SG_ SteeringRate : 16|16@1- (1,0) [-32768|32767] "deg/s" Vector__XXX
+
+BO_ 416 VEHICLE_SPEED: 8 ECM
+ SG_ VehicleSpeed : 0|16@1+ (0.01,0) [0|655.35] "km/h" Vector__XXX
+ SG_ Gear : 16|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ Reverse : 20|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Odometer : 32|32@1+ (0.1,0) [0|429496729.5] "km" Vector__XXX
+
+BO_ 432 BRAKE: 8 ABS
+ SG_ BrakePedal : 0|8@1+ (0.4,0) [0|100] "%" Vector__XXX
+ SG_ BrakePressure : 8|16@1+ (0.1,0) [0|6553.5] "bar" Vector__XXX
+ SG_ HandBrake : 24|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 496 WHEEL_SPEEDS: 8 ABS
+ SG_ WheelSpeedFL : 0|16@1+ (0.01,0) [0|655.35] "km/h" Vector__XXX
+ SG_ WheelSpeedFR : 16|16@1+ (0.01,0) [0|655.35] "km/h" Vector__XXX
+ SG_ WheelSpeedRL : 32|16@1+ (0.01,0) [0|655.35] "km/h" Vector__XXX
+ SG_ WheelSpeedRR : 48|16@1+ (0.01,0) [0|655.35] "km/h" Vector__XXX
+
+BO_ 512 ESP_IMU: 8 ABS
+ SG_ YawRate : 0|16@1- (0.01,0) [-327.68|327.67] "deg/s" Vector__XXX
+ SG_ LatAccel : 16|16@1- (0.001,0) [-32.768|32.767] "m/s2" Vector__XXX
+ SG_ LongAccel : 32|16@1- (0.001,0) [-32.768|32.767] "m/s2" Vector__XXX
+
+BO_ 1000 BODY: 8 BCM
+ SG_ BatteryVoltage : 0|8@1+ (0.1,0) [0|25.5] "V" Vector__XXX
+ SG_ FuelLevel : 8|8@1+ (0.4,0) [0|100] "%" Vector__XXX
+ SG_ MIL : 16|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ DTCCount : 17|7@1+ (1,0) [0|127] "" Vector__XXX
+
+CM_ BO_ 192 "Motor: RPM, acelerador, pedal, temperatura de refrigerante";
+CM_ BO_ 196 "Dirección asistida: ángulo y velocidad del volante";
+CM_ BO_ 416 "Velocidad del vehículo, marcha y odómetro";
+CM_ BO_ 432 "Frenos: pedal, presión y freno de mano";
+CM_ BO_ 496 "Velocidad de cada rueda (ABS)";
+CM_ BO_ 512 "Control de estabilidad: guiñada y aceleraciones";
+CM_ BO_ 1000 "Carrocería: batería, combustible, testigo MIL y número de DTC";

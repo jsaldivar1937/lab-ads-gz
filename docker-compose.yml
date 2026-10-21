@@ -1,0 +1,103 @@
+# Laboratorio Virtual ADS — Gazebo Harmonic + ROS 2 Jazzy, todo en Docker
+# Usuario y clave del profesor en .env (por defecto profesor / profesor)
+name: lab-ads
+
+x-base: &base
+  build: ./docker/gz
+  image: lab-ads/gz:jazzy
+  # Memoria compartida entre sim, web y puente: Fast DDS la usa para imágenes y nubes
+  # (sin esto los tópicos aparecen pero los datos no llegan de un contenedor a otro)
+  ipc: host
+  pid: host
+  volumes:
+    - ./src:/lab/src
+    - ./gz:/lab/gz
+    - ./config:/lab/config:ro
+    - ./practicas:/lab/practicas:ro
+    - ./data:/data
+  restart: unless-stopped
+
+services:
+  # Gazebo + puente Gazebo↔ROS 2 + núcleo (dinámica, sensores, ECU, fallas)
+  sim:
+    <<: *base
+    command: bash /lab/gz/arrancar_sim.sh
+    environment:
+      - ROS_DOMAIN_ID=7
+      - LAB_CONFIG=/lab/config/lab.yaml
+      - LAB_DATA=/data
+    networks: [lab]
+    stop_grace_period: 15s
+    deploy:
+      resources:
+        limits: {cpus: "6", memory: 6g}
+
+  # Página web (alumnos y profesor)
+  web:
+    <<: *base
+    command: python3 /lab/src/web/app.py
+    environment:
+      - ROS_DOMAIN_ID=7
+      - LAB_CONFIG=/lab/config/lab.yaml
+      - LAB_DATA=/data
+      - LAB_USUARIO_PROFESOR=${LAB_USUARIO_PROFESOR:-profesor}
+      - LAB_CLAVE_PROFESOR=${LAB_CLAVE_PROFESOR:-profesor}
+      - LAB_FPS_VIDEO=${LAB_FPS_VIDEO:-6}
+    volumes:
+      - ./src:/lab/src
+      - ./gz:/lab/gz
+      - ./config:/lab/config:ro
+      - ./practicas:/lab/practicas:ro
+      - ./data:/data
+      - trabajo:/trabajo          # archivos que suben los alumnos (los ve la terminal)
+    networks: [lab]
+    deploy:
+      resources:
+        limits: {cpus: "1.5", memory: 1536m}
+
+  # Copia de solo lectura de los sensores al dominio de prácticas (7 → 8)
+  puente_practicas:
+    <<: *base
+    command: bash /lab/practicas/arrancar_puente.sh
+    environment:
+      - LAB_CONFIG=/lab/config/lab.yaml
+      - ROS_DOMAIN_ID_LAB=7
+    networks: [lab, practicas]
+    deploy:
+      resources:
+        limits: {cpus: "1", memory: 1g}
+
+  # Terminal web de los alumnos (aislada: solo ve el dominio de prácticas)
+  terminal:
+    build: ./docker/gz
+    image: lab-ads/gz:jazzy
+    command: bash /lab/practicas/arrancar_terminal.sh
+    environment:
+      - ROS_DOMAIN_ID=8
+      - FASTDDS_BUILTIN_TRANSPORTS=UDPv4   # la terminal no comparte memoria: solo red
+    volumes:
+      - ./practicas:/lab/practicas:ro
+      - ./config:/lab/config:ro
+      - trabajo:/trabajo
+    networks: [practicas]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: {cpus: "2", memory: 2g, pids: 600}
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: [lab, practicas]
+    depends_on: [web, terminal]
+    restart: unless-stopped
+
+networks:
+  lab: {}
+  practicas: {}
+
+volumes:
+  trabajo: {}

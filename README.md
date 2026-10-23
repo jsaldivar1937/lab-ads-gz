@@ -1,4 +1,4 @@
-# Laboratorio Virtual de Conducción Autónoma (ADS) · versión Gazebo
+# Laboratorio Virtual de Conducción Autónoma· versión Gazebo
 
 Simulador para el diplomado en línea: **Gazebo Harmonic + ROS 2 Jazzy + visualizador web**,
 todo dentro de Docker (ya no se usa CARLA ni ningún programa nativo en Windows).
